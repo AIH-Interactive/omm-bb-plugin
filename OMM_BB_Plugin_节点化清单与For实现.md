@@ -155,6 +155,8 @@ Penpot 文件 `OMM_BB_Plugin`（文件 ID `fa83bdeb-7bcf-80fa-8008-fea99e8cd53b`
 | For 循环 · pairs 与迭代器 | pairs 与通用迭代器输入、Lua 预览 | `038496b5-4fc8-8059-8008-feba09e54e8d` |
 | For 循环 · 键值循环体 | 局部 key/value 接入输出，体末端进入下一轮 | `038496b5-4fc8-8059-8008-feba3fda4845` |
 
+节点采用约 10 px 圆角。执行线、数据线和 break 分支使用三次贝塞尔路径，端点吸附至对应端口中心。选中描边、类型识别和连线错误状态沿用宿主主题；循环体仍使用独立块及完成口。
+
 P2 在 `src/workflow/schema.ts` 定义循环块及端口，在 `src/workflow/validate.ts` 实现可见性、作用域和非法连线校验，在画布中提供循环体入口、返回面包屑及完成口。P3 在 `src/lua/ast/lower.ts`、`src/lua/ir/graph.ts` 和 `src/lua/generator/emit.ts` 实现两类 for 的导入、转换和生成，在 `src/lua/roundtrip.ts` 验证 ID 与源码恢复。先覆盖数值 for 和 break，再用同一块模型接入 ipairs、pairs 和显式迭代器。
 
 ## 5. 源码白名单候选索引
