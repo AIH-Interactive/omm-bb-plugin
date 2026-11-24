@@ -6,6 +6,8 @@
 
 提供「Lua工作流」工作模式、节点库、可编辑图、Lua 双向转换、可复用子图/脚本库、OMM 菜单与模板、YSM 编辑辅助。保留原生 Generic Model 的建模、动画及工程机制。自定义 Lua 脚本节点是首版验收必需项。Web、移动端、其他游戏版本和任意 Lua 的完整可视化属于首版范围外。测试模型使用 `refs/models`，只读引用和隔离输出。
 
+**强制约束。** P0–P7 的原型、实现、验证和发布均禁止修改 Blockbench 源码。refs/blockbench 仅供只读研究。禁止通过补丁、Fork、自编译或重打包修改版宿主实现功能。插件须在原版 Blockbench 中运行，所有适配代码与资产均放在本插件内。验收须记录原版宿主版本和来源。
+
 ## 2. 源码证据与基线
 
 本地三份参考树均有 CodeGraph 索引，先检索符号和路径，再以源码、构建配置、资源及 ZIP 清单补充。下文以 BB、OMM、YSM 代表 `refs/blockbench`、`refs/omni-morph`、`refs/YSM-Utils-Plugins`。OMM Java 路径默认相对于 `common/src/main/java`。源码树与发布 JAR 单独记录版本，P0 核对差异。JAR SHA-256 为 `9f534c57c901f6f32fb4ab5d726f36f7c0b93095e6fde8f93ed1713c3e0971c6`。证据状态采用 **已通过源码确认**、**设计推断，待验证**、**需要原型实验**、**暂不支持**。
@@ -19,7 +21,7 @@
 | 工程与格式 | BB `js/formats/generic.ts:1` 使用 `free`；`js/io/project.ts:367` 按项目 mode 查找注册项；`js/formats/bbmodel.js:101,398,445,600` 提供 project codec 事件 | 避免卸载后工程仍指向插件 Mode；宿主原生模型数据走其原生 codec，工作流默认 sidecar |
 | 菜单和布局 | BB `js/interface/menu_bar.ts:19–78,862` 有 BarMenu 和 Action 入口；`js/modes.ts` 调用侧栏更新；`package.json:191` 依赖 Vue 2.7.16 范围 | 注册独立菜单，核对哪些模式由 MenuBar.update 显示。使用 Mode.component 的工作区、宿主 Action 和主题；插件工具栏与快捷键限制在工作流焦点内 |
 
-P0 顺序：先用 Mode、组件、Action 检查真实界面。若原生选项能显示但顺序失配，原型验证版本限定的响应式重排，记录对宿主选项和项目 mode 的影响。若原生入口无法稳定显示，保留 Mode 和 OMM 菜单入口，评估在已识别动画按钮附近挂载单个可移除入口。入口未达「动画后」就记录差异和证据，由产品决策是否接受；宿主 Fork 是需另行授权的最后备选。项目文档 Tab 属于工程切换语义，优先选择工作 Mode。正式卸载需恢复本插件占用的模式、快捷键、监听、Vue 实例、DOM、菜单、样式、引用；依据宿主 teardown 实际行为逐项配对。
+P0 顺序：先用 Mode、组件、Action 检查真实界面。若原生选项能显示但顺序失配，原型验证版本限定的响应式重排，记录对宿主选项和项目 mode 的影响。若原生入口无法稳定显示，保留 Mode 和 OMM 菜单入口，评估在已识别动画按钮附近挂载单个可移除入口。若原版宿主中的插件适配仍无法满足精确位置，保留通过验证的 OMM 菜单入口作为候选降级，并将位置要求记为未达成，待产品决定是否接受。项目文档 Tab 属于工程切换语义，优先选择工作 Mode。正式卸载需恢复本插件占用的模式、快捷键、监听、Vue 实例、DOM、菜单、样式、引用；依据宿主 teardown 实际行为逐项配对。
 
 ## 4. OMM Lua 运行时与 API 清单
 
@@ -292,20 +294,20 @@ Graph 保存节点布局、分组、注释及视口。IR 保存符号引用与�
 
 | 阶段 / 依赖 | 实施步骤与文件 | RED | GREEN 与完成判定 / 主要风险 |
 |---|---|---|---|
-| P0 / 本地参考 | docs/source-baseline.md、docs/ui-prototype.md；固定宿主/JAR，探 Mode、菜单、编译方言与模块加载，盘点样本，确定依赖和许可 | 记录缺失的定位、方言、模块和样本证据，列最小业务 probe | 证据表、宿主入口路线、版本基线和 fixture 清单可复核，人工记录照实；风险为排序和来源版本漂移 |
+| P0 / 本地参考 | docs/source-baseline.md、docs/ui-prototype.md；固定宿主/JAR，探 Mode、菜单、编译方言与模块加载，盘点样本，确定依赖和许可 | 记录缺失的定位、方言、模块和样本证据，列最小业务 probe | 证据表、宿主入口路线、版本基线和 fixture 清单可复核，人工记录照实；以原版安装包验证插件入口；风险为排序和来源版本漂移 |
 | P1 / P0 | package、build、plugin、blockbench、workspace、schema、workflow-file；搭建空图及保存入口 | 非法 schema/写失败报错，菜单入口无法进入时有可观察结果 | 单文件构建，业务数据保存正确，真实界面检查列入验收记录；风险为宿主 Vue/项目模式 |
 | P2 / P1 | GraphCanvas、NodeLibrary、ScriptNodeEditor、store、validate、registry | 非法边、复制 ID 冲突、删端口断链、撤销状态差一项均能检出 | 图操作测试通过；脚本节点双模式、参数和正文可编辑保存；性能基准与 CJK 桌面验收留证 |
 | P3 / P2 | parser、IR、emitter、roundtrip、导出预览和文件计划 | 优先级、多返回、作用域、未知节点、正文丢失、重复 ID 或外部编辑分别触发 | Golden 和目标语法、文件哈希冲突、安全降级与双模式数据流通过；真实语义归 P7 核对 |
 | P4 / P3 | extractor、catalog、compatibility、assets/api | 用未注册 Java 方法、不可用版本、同名不同重载验证拒绝 | 可达项与排除项对账，清单字段完整，选中典型节点生成正确调用；风险为权限条件误判 |
 | P5 / P4 | subgraphs、modules、export-plan | 循环引用、路径冲突、接口破坏、缺失模块 | 简单/嵌套模块输出稳定、依赖可追踪、坏输入给诊断；与 OMM 加载语义待实机证据 |
 | P6 / P5 | model-bindings、templates、ysm、菜单 | 缺字段/文件、重名骨骼、未知 schema、旧目录转换丢数据 | 真实本地样本业务断言通过，受支持项目输出独立目录，保留扩展字段或显式拒绝丢失 |
-| P7 / P6 | build、validation、fixture 记录 | 对照 P3–P6 确认不支持组合与异常诊断，验证打包前缺件失败 | Windows 产物与哈希、支持矩阵、真实用户路径结果；人工结果单列，生命周期测试 SKIPPED（用户禁止） |
+| P7 / P6 | build、validation、fixture 记录 | 对照 P3–P6 确认不支持组合与异常诊断，验证打包前缺件失败 | Windows 插件产物与哈希、原版 Blockbench 版本及来源、支持矩阵、真实用户路径结果；人工结果单列，生命周期测试 SKIPPED（用户禁止） |
 
 ## 19. RED/GREEN 与真实环境验收
 
 先对本阶段业务行为建立可失败断言，再完成实现并重跑受影响套件。未来 Windows 构建、打包和测试均使用 PowerShell 前台，命令 `& <command> 2>&1 | Tee-Object -FilePath "build.log"` 后立即检查 `$LASTEXITCODE`，失败读取日志。显式选择业务套件，生命周期测试一律 SKIPPED（用户禁止）。禁止本地 WSL、非 Windows 构建。
 
-真实桌面验证在获准的单次 Blockbench 会话中完成：打开模型，查看模式位置和 CJK，添加与连线两个执行模式的脚本节点，编辑签名和正文、保存、导出、导入并检查 ID 和损坏清单诊断，同时编辑原生骨骼/动画。等待稳定渲染后仅在需证据时截取可见窗口，记录 DPI 与操作，结束后关闭。适用 Qt 校验也使用正常 Windows 平台窗口，禁止 offscreen。画布基准建议 500 节点/750 边、稳定渲染后 5 秒平移记录 p95 帧间隔，目标 ≤33 ms，记录设备和 DPI 并在 P0 确定测量方法。
+真实桌面验证在获准的单次原版 Blockbench 会话中完成：打开模型，查看模式位置和 CJK，添加与连线两个执行模式的脚本节点，编辑签名和正文、保存、导出、导入并检查 ID 和损坏清单诊断，同时编辑原生骨骼/动画。等待稳定渲染后仅在需证据时截取可见窗口，记录 DPI 与操作，结束后关闭。适用 Qt 校验也使用正常 Windows 平台窗口，禁止 offscreen。画布基准建议 500 节点/750 边、稳定渲染后 5 秒平移记录 p95 帧间隔，目标 ≤33 ms，记录设备和 DPI 并在 P0 确定测量方法。
 
 真实 OMM 业务验证在获准的游戏环境执行代表性样本的节点输出、事件、模型变换、动画、YSM 材质关联、模块缓存及自定义脚本两模式。每条记录预期效果、游戏日志与产物；编辑器预览和编译通过单列。人工、实机未执行记 MANUAL/PENDING，用户明确跳过记 SKIPPED，均不充当自动阶段门槛。
 
