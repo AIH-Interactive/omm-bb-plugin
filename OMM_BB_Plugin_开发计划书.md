@@ -4,7 +4,7 @@
 
 ## 1. 目标与交付范围
 
-提供「Lua工作流」工作模式、节点库、可编辑图、Lua 双向转换、可复用子图/脚本库、OMM 菜单与模板、YSM 编辑辅助。保留原生 Generic Model 的建模、动画及工程机制。自定义 Lua 脚本节点是首版验收必需项。Web、移动端、其他游戏版本和任意 Lua 的完整可视化属于首版范围外。测试模型使用 `refs/models`，只读引用和隔离输出。
+提供「Lua工作流」工作模式、节点库、可编辑图、Lua 双向转换、可复用子图/脚本库、OMM 菜单与模板、YSM 编辑辅助、OMM 控件编辑及模拟、当前骨骼树节点和宿主动画预览。保留原生 Generic Model 的建模、动画及工程机制。自定义 Lua 脚本节点是首版验收必需项。Web、移动端、其他游戏版本和任意 Lua 的完整可视化属于首版范围外。测试模型使用 `refs/models`，只读引用和隔离输出。
 
 **强制约束。** P0–P7 的原型、实现、验证和发布均禁止修改 Blockbench 源码。refs/blockbench 仅供只读研究。禁止通过补丁、Fork、自编译或重打包修改版宿主实现功能。插件须在原版 Blockbench 中运行，所有适配代码与资产均放在本插件内。验收须记录原版宿主版本和来源。
 
@@ -65,11 +65,46 @@ P4 按入口闭包展开并逐项对账：标准环境（基础、数学、位�
 
 宿主适配 → 工作区组件 → GraphStore/命令栈 → 节点注册/类型校验。编译链为 Lua → Parser/AST → IR → Graph，反向为 Graph → IR → emitter。IR 独立于宿主和渲染器，节点目录提供签名和调用规则。OMM/YSM 适配负责模型与封装路径。持久化层保存图、布局、Lua 同步基线与诊断，测试以纯模块和真实宿主操作分离。包内 Lua 解析为文本处理，编辑器不执行导入的脚本。
 
-## 8. UI 与 Penpot 规格
+## 8. UI 与 Penpot 原型
 
-设计交付为 Penpot 原型规格。桌面参考画板 1440×900 和 1280×720：顶部 44 px 工具条，左侧 256 px 节点/脚本库，可折叠右侧 320 px 属性面板，中间画布，左下 160×100 px 小地图。主题采用宿主 CSS 变量，组件 class 以 omm 前缀隔离。节点宽 200–320 px、端口热区至少 24 px，执行流和数据接口使用形状及文字区分；节点拖拽、快捷键和缩放以画布焦点为边界。工具栏提供保存、导入、导出、撤销/重做、适配视图和诊断。库按类别折叠、搜索支持中文/原名，拖入与键盘添加共享命令。画布有平移、缩放、框选、多选、对齐、分组、复制、断连、删除和小地图导航。世界坐标与视口矩阵独立，按视口裁剪，拖动更新经 requestAnimationFrame 合并，松手后提交一次撤销命令。
+Penpot 文件 `OMM_BB_Plugin`（文件 ID `fa83bdeb-7bcf-80fa-8008-fea99e8cd53b`）包含 28 个独立页面，每页一个可编辑画板。主尺寸 1440×900，另附 1280×720 紧凑工作区。主工作区已执行「缩放查看全部」。已导出检查主工作区、紧凑工作区、控件面板、控件生成节点和动画播放画板的可读性；125% 实机 DPI 验收留到 P1/P2。
 
-原型帧依次覆盖空项目、搜索弹窗、连线校验、自定义脚本参数/正文编辑、子图面包屑与接口编辑、Lua 导入诊断、导出预览和冲突处理、OMM 模板菜单、YSM 检查面板。标注默认/焦点/错误/禁用态以及 125% DPI 和 CJK 截断。真实桌面验证操作与截图需求在 P1/P2 记录。
+| 页面组 | 评审内容 | Penpot 入口页 ID |
+|---|---|---|
+| 工作区 | 空项目、搜索焦点、连线错误、完整脚本属性、紧凑排布 | `fa83bdeb-7bcf-80fa-8008-fea99e8cd53c` |
+| 子图、导入与导出 | 子图接口；稳定 ID 匹配、回导清单缺失保留源码；外部修改三方对照 | `038496b5-4fc8-8059-8008-feb6dd0c9b44` |
+| OMM 与 YSM | 模板菜单、Spec 2 文件与骨骼绑定诊断 | `038496b5-4fc8-8059-8008-feb6f297880a` |
+| 控件编辑 | 从控件库添加滑块与按钮后，检查生成节点及稳定 ID | `038496b5-4fc8-8059-8008-feb7d4dc15d5` |
+| 模拟控件 | 初始值、开关、滑块、枚举、颜色、文本、数值错误及修正、按键捕获及绑定、按钮、页面跳转和重置 | `038496b5-4fc8-8059-8008-feb70f9a4739` |
+| 模型动画预览 | 暂停与骨骼树、播放与拖尾、绑定失效 | `038496b5-4fc8-8059-8008-feb79a4d367d` |
+
+Penpot 的演示链接在已登录预览中跨页跳转，展示离散操作结果。实际连续拖动、键盘捕获、逐帧动画和 Lua 回调安排在插件实现及业务验收。动画画板使用方块模型示意。设计基于 BB `themes/dark.bbtheme` 的默认深色调色板，采用密集工具栏、平直面板和蓝色焦点线。实施读取宿主 `--color-ui`、`--color-back`、`--color-dark`、`--color-elevated`、`--color-border`、`--color-accent` 及文本 token，兼容浅色和高对比主题。默认左栏 256 px、右栏 320 px、工作流工具栏 44 px、小地图 160×100 px。执行和数据端口按形状及文字区分，端口命中区至少 24 px。插件快捷键只在相关面板有焦点时生效。视口裁剪及拖动命令合并仍按 P2 画布验收执行。
+
+### 8.1 OMM 控件面板与图绑定
+
+以 OMM `top/aihmc/omnimorph/avatar/control/AvatarControlType.java:11–22`、`AvatarControlDefinition.java:408,569,669,737,766,786`、`lua/api/avatar_controls/AvatarControlsAPI.java:61–95,270–286,313–347`、`gui/screens/AvatarControlsScreen.java:137–208,372–478,500–527` 为依据。控件面板使用 Blockbench 样式，复现模组的分页、控件排列、当前值、单项重置与全部重置。页面导航来自带 targetPage 的 BUTTON（`newPage` 返回 `newButton(id).setTargetPage(id)`），页面状态与动作回调按模组语义区分。
+
+| 模组类型 | Blockbench 控件 | 默认生成节点 |
+|---|---|---|
+| TOGGLE | 开关，布尔值 | 读取控件，输出 boolean |
+| SLIDER / NUMBER | 范围滑块、数值输入，校验边界；滑块应用步长 | 读取控件，输出 number |
+| ENUM | 下拉，保存选项 ID，显示本地化标题 | 读取控件，输出选项值 string |
+| COLOR / TEXT | 颜色字符串与色样、文本输入 | 读取控件，输出 string；颜色字段按目标格式校验 |
+| KEYBIND | 捕获键盘或鼠标，支持取消 | 读取已绑定输入编码，输出 string；真实游戏触发按目标 API 证据定义 |
+| BUTTON | 执行动作；有 targetPage 时切换控件页 | 普通按钮生成按下事件节点；导航按钮只产生页面跳转 |
+| LABEL / SEPARATOR | 标签、分隔线 | 无业务节点 |
+
+控件定义保存在工作流源，至少含 `controlId, type, title, page, category, defaultValue`，以及类型需要的 `min/max/step/options/binding/persistent/targetPage`。添加控件、创建默认节点和绑定在一个可撤销事务内完成。控件标题改名、换页或排序沿稳定 ID 保持连接；删除或改变类型前提供影响预览。可从库显式添加「值变化」节点，只有通过校验且实际改变的值入队。普通按钮每次有效按下发一次执行事件。无效输入保留上次有效值并显示字段诊断。P2 模拟状态只在当前项目的预览会话中保存，驱动受支持的编辑器预览动作和事件记录。P4 核对目标工件的回调参数、控件约束、绑定与持久化规则，导出经审核的 `avatar_controls` 注册与回调；任意用户 Lua 保持文本编辑、导出及目标运行时验收。
+
+### 8.2 模型动画预览、当前骨骼树与拖尾
+
+**已通过源码确认**：BB `js/preview/preview.ts:497,503,734–757,1877–1921,2544,2551–2572` 的 Preview 实例参与原生渲染循环并渲染 `Canvas.scene`。`js/animations/timeline.js:237,628–697` 提供定位、播放、暂停及事件。`js/animations/animation_mode.js:365–468` 的 Animator.preview 求值并分发 `display_animation_frame`。`js/outliner/outliner.js:10–12` 提供 Outliner.root，`js/outliner/types/group.js:625–627` 按 group.uuid 写入 Project.nodes_3d。项目选择、编辑及撤销事件见 `js/io/project.ts:399,473`、`js/undo.js:39,226,247`。
+
+**P0 原型验证**：优先在插件面板挂载原生 Preview 实例，共享宿主场景、相机控制、Timeline 和 Animator；避免调用重置宿主视口布局的 fullscreen 路径。验证在自定义 Mode 的播放时钟、Molang 求值、原生相机交互及 `display_animation_frame` 顺序。必要时使用插件入口切到原生动画视口联动时间轴，并记录独立面板未满足及候选降级。所有方案使用原版 Blockbench，插件不写宿主源码。
+
+- 「当前模型骨骼树」输出只读 `BoneTree`，递归读取当前 Project 的 Outliner 层级，包含骨骼 UUID、名称、父 UUID、层级路径与模型类型。可从树拖入或在节点属性选择，生成带项目身份的 `BoneRef`。同项目改名重新显示，删除、换项目或重名路径触发重绑诊断。编辑、撤销、重做和切项目时更新快照。禁止给节点暴露可改写宿主对象的直接引用。
+- 「采样骨骼世界变换」在原生帧求值后，从对应节点的世界变换取得位置和旋转，输出不可变副本。由时间轴时间确定采样坐标，去重同帧，缓存每个绑定的有界轨迹，倒拖、跳帧、循环、切动画或绑定失效时重建采样基线。最小可见样例使用右臂摆动及最多 12 个采样点，叠加层只属于插件预览；可用 P0 实测决定间隔与坐标换算。
+- 编辑器内的 UUID 和路径用于定位工程骨骼。导出时按项目适配器从绑定生成经目标 OMM/Figura 或 YSM 证实的模型访问表达式；导出诊断覆盖模型尚未绑定、运行时骨骼不存在及不支持的世界变换。实际 OMM 运行的模型动画和拖尾需另行验收，Blockbench 预览用于验证编辑器中的姿态与轨迹。
 
 ## 9. 节点系统与首版自定义 Lua 节点
 
@@ -140,6 +175,11 @@ Parser 保存 token/range/注释与 AST；AST → IR 负责作用域、符号绑
 | src/ui/GraphCanvas.vue | P2 | graph/viewport → 可裁剪画布与小地图，经命令触发连线及编辑 |
 | src/ui/NodeLibrary.vue | P2/P4 | NodeRegistry → 搜索、分类、拖放/键盘插入 |
 | src/ui/ScriptNodeEditor.vue | P2/P3 | 端口、模式与正文 → 单事务修改，错误位置可定位 |
+| src/ui/ControlPanel.vue、src/ui/ControlEditor.vue | P2/P4 | 控件定义、模拟状态 → 原生风格的控件编辑、预览、分组、输入校验和事件显示 |
+| src/workflow/controls.ts、src/nodes/avatar-controls.ts | P2/P4 | 控件定义 → 与稳定 ID 绑定的读取/变化/按下节点，默认节点与定义原子撤销；按确认的目标 API 提供生成规则 |
+| src/blockbench/animation-preview.ts、src/ui/ModelPreviewPanel.vue | P2 | 宿主 Preview、Animator、Timeline → 视口、动画片段、播放/暂停/拖动与帧事件；保持原生编辑可用 |
+| src/blockbench/bone-tree.ts、src/nodes/model-bones.ts | P2/P6 | 当前工程树和原生帧 → 只读骨骼树、引用与世界变换；失效定位与导出模型路径由适配器核验 |
+| src/workflow/trail-preview.ts | P2 | 骨骼帧快照 → 有界轨迹；处理重复帧、跳转与挂起 |
 | src/ui/ImportExportDialog.vue | P3 | 文件/基线/候选 → 预览、诊断和显式合并结果 |
 | src/workflow/schema.ts | P1/P2 | GraphDocument、PortSpec、SourceSpan → 可版本化 JSON |
 | src/workflow/store.ts | P2 | apply/undo/redo(command) → 新状态与诊断；移动与批操作原子撤销 |
@@ -294,11 +334,11 @@ Graph 保存节点布局、分组、注释及视口。IR 保存符号引用与�
 
 | 阶段 / 依赖 | 实施步骤与文件 | RED | GREEN 与完成判定 / 主要风险 |
 |---|---|---|---|
-| P0 / 本地参考 | docs/source-baseline.md、docs/ui-prototype.md；固定宿主/JAR，探 Mode、菜单、编译方言与模块加载，盘点样本，确定依赖和许可 | 记录缺失的定位、方言、模块和样本证据，列最小业务 probe | 证据表、宿主入口路线、版本基线和 fixture 清单可复核，人工记录照实；以原版安装包验证插件入口；风险为排序和来源版本漂移 |
+| P0 / 本地参考 | docs/source-baseline.md、docs/ui-prototype.md；引用本节已完成的 Penpot 页面，固定宿主/JAR，探 Mode、菜单、动画预览挂载、帧事件、控件派发、Lua 方言与模块加载，盘点样本，确定依赖和许可 | 记录缺失的定位、方言、模块和样本证据，列最小业务 probe | 证据表、宿主入口路线、版本基线和 fixture 清单可复核，人工记录照实；以原版安装包验证插件入口；风险为排序和来源版本漂移 |
 | P1 / P0 | package、build、plugin、blockbench、workspace、schema、workflow-file；搭建空图及保存入口 | 非法 schema/写失败报错，菜单入口无法进入时有可观察结果 | 单文件构建，业务数据保存正确，真实界面检查列入验收记录；风险为宿主 Vue/项目模式 |
-| P2 / P1 | GraphCanvas、NodeLibrary、ScriptNodeEditor、store、validate、registry | 非法边、复制 ID 冲突、删端口断链、撤销状态差一项均能检出 | 图操作测试通过；脚本节点双模式、参数和正文可编辑保存；性能基准与 CJK 桌面验收留证 |
+| P2 / P1 | GraphCanvas、NodeLibrary、ScriptNodeEditor、store、validate、registry、控件模拟、骨骼树与动画预览 | 非法边、改名丢绑定、无效值仍派发、删除骨骼仍采样、时间倒退后串轨、撤销只回退半个事务均能检出 | 图操作通过；脚本双模式、控件默认节点、模拟事件与原生时间轴/骨骼取样通过对应业务验收；性能与 CJK 桌面留证 |
 | P3 / P2 | parser、IR、emitter、roundtrip、导出预览和文件计划 | 优先级、多返回、作用域、未知节点、正文丢失、重复 ID 或外部编辑分别触发 | Golden 和目标语法、文件哈希冲突、安全降级与双模式数据流通过；真实语义归 P7 核对 |
-| P4 / P3 | extractor、catalog、compatibility、assets/api | 用未注册 Java 方法、不可用版本、同名不同重载验证拒绝 | 可达项与排除项对账，清单字段完整，选中典型节点生成正确调用；风险为权限条件误判 |
+| P4 / P3 | extractor、catalog、compatibility、assets/api 和控件节点代码生成规则 | 用未注册 Java 方法、不可用版本、同名不同重载验证拒绝 | 可达项与排除项对账，清单字段完整，选中典型节点生成正确调用；风险为权限条件误判 |
 | P5 / P4 | subgraphs、modules、export-plan | 循环引用、路径冲突、接口破坏、缺失模块 | 简单/嵌套模块输出稳定、依赖可追踪、坏输入给诊断；与 OMM 加载语义待实机证据 |
 | P6 / P5 | model-bindings、templates、ysm、菜单 | 缺字段/文件、重名骨骼、未知 schema、旧目录转换丢数据 | 真实本地样本业务断言通过，受支持项目输出独立目录，保留扩展字段或显式拒绝丢失 |
 | P7 / P6 | build、validation、fixture 记录 | 对照 P3–P6 确认不支持组合与异常诊断，验证打包前缺件失败 | Windows 插件产物与哈希、原版 Blockbench 版本及来源、支持矩阵、真实用户路径结果；人工结果单列，生命周期测试 SKIPPED（用户禁止） |
@@ -307,7 +347,7 @@ Graph 保存节点布局、分组、注释及视口。IR 保存符号引用与�
 
 先对本阶段业务行为建立可失败断言，再完成实现并重跑受影响套件。未来 Windows 构建、打包和测试均使用 PowerShell 前台，命令 `& <command> 2>&1 | Tee-Object -FilePath "build.log"` 后立即检查 `$LASTEXITCODE`，失败读取日志。显式选择业务套件，生命周期测试一律 SKIPPED（用户禁止）。禁止本地 WSL、非 Windows 构建。
 
-真实桌面验证在获准的单次原版 Blockbench 会话中完成：打开模型，查看模式位置和 CJK，添加与连线两个执行模式的脚本节点，编辑签名和正文、保存、导出、导入并检查 ID 和损坏清单诊断，同时编辑原生骨骼/动画。等待稳定渲染后仅在需证据时截取可见窗口，记录 DPI 与操作，结束后关闭。适用 Qt 校验也使用正常 Windows 平台窗口，禁止 offscreen。画布基准建议 500 节点/750 边、稳定渲染后 5 秒平移记录 p95 帧间隔，目标 ≤33 ms，记录设备和 DPI 并在 P0 确定测量方法。
+真实桌面验证在获准的单次原版 Blockbench 会话中完成：打开模型，查看模式位置和 CJK，添加与连线两个执行模式的脚本节点，编辑签名和正文、保存、导出、导入并检查 ID 和损坏清单诊断，同时编辑原生骨骼/动画。添加滑块和按钮检查对应节点，修改值与执行按钮检查模拟事件，重置并核对默认值及不适用重置的控件。用当前模型的右臂骨骼执行原生动画播放、暂停和拖动，检查逐帧位姿与拖尾变化，再在工作副本中验证骨骼重命名、删除和撤销。等待稳定渲染后仅在需证据时截取可见窗口，记录 DPI 与操作，结束后关闭。适用 Qt 校验也使用正常 Windows 平台窗口，禁止 offscreen。画布基准建议 500 节点/750 边、稳定渲染后 5 秒平移记录 p95 帧间隔，目标 ≤33 ms，记录设备和 DPI 并在 P0 确定测量方法。
 
 真实 OMM 业务验证在获准的游戏环境执行代表性样本的节点输出、事件、模型变换、动画、YSM 材质关联、模块缓存及自定义脚本两模式。每条记录预期效果、游戏日志与产物；编辑器预览和编译通过单列。人工、实机未执行记 MANUAL/PENDING，用户明确跳过记 SKIPPED，均不充当自动阶段门槛。
 
@@ -322,6 +362,8 @@ Graph 保存节点布局、分组、注释及视口。IR 保存符号引用与�
 | YSM 格式和 Molang 差异 | schema 探测，保留未识别字段 | 只读报告、编辑源串；旧/新格式 fixture 和真实样本检查 |
 | 模块与多文件导出 | DAG、路径规范化、显式入口、先验证后发布 | 路径未证实则阶段内核验；导出失败保留旧目录，模块 fixtures 对照运行 |
 | 模型兼容及数据覆盖 | sidecar，显式绑定、原生格式 codec | 独立输出和冲突 UI；测试未修改原始模型 |
+| 预览与宿主动画状态相互影响 | 用原生 Preview、Timeline 和帧事件，预览层只读骨骼并持有自身轨迹 | 面板不可嵌入时验证原生动画视口联动；原版窗口核验切项目、时间轴和采样一致性 |
+| 控件语义与目标模组版本不一致 | 以工件的定义、渲染和派发路径核对控件契约 | 模拟报告不支持项；真实 OMM 核验值变化、按钮和重置输出 |
 | 大图性能 | 视口裁剪、批处理、限制同步 DOM 更新 | 按实测优化局部渲染层；记录 p95 与丢帧 |
 | 许可证与素材 | 逐包许可、模型使用授权、依赖清单 | 使用自有 fixtures；发布清单检查素材范围 |
 | 未知节点、脚本恢复 | 稳定 ID、版本化清单、完整源码 | 原始 Lua 保留、诊断和有歧义时冻结编译；篡改/缺失清单测试 |
