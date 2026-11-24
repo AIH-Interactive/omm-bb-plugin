@@ -182,6 +182,11 @@ export function createScriptNodeEditor(controller: WorkspaceController): object 
         <button type="button" :disabled="!dirty" @click="discard">还原</button>
       </div>
     </template>
+    <template v-else-if="node.type === 'core.rawLua'">
+      <div class="omm-subtitle">Lua 原文</div>
+      <textarea class="omm-code" :value="node.source" rows="8" spellcheck="false" @change="setField('source', $event.target.value)"></textarea>
+      <div class="omm-muted omm-hint">原文按字节保留，导出时原样写回。</div>
+    </template>
     <template v-else-if="node.type === 'core.constant.number'">
       <label class="omm-field">值
         <input class="omm-input" type="number" :value="node.value" @change="setField('value', Number($event.target.value))">

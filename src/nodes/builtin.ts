@@ -46,7 +46,62 @@ export function registerBuiltinNodes(registry: NodeRegistry): void {
       { id: "condition", name: "条件", type: "boolean", direction: "input", kind: "data" },
       { id: "then", name: "成立", type: "flow", direction: "output", kind: "flow" },
       { id: "else", name: "否则", type: "flow", direction: "output", kind: "flow" },
+      { id: "exec_out", name: "完成", type: "flow", direction: "output", kind: "flow" },
     ]),
+  });
+  registry.register({
+    type: "core.event.load",
+    title: "脚本载入",
+    category: "事件",
+    ports: staticPorts([FLOW_OUT]),
+  });
+  registry.register({
+    type: "core.rawLua",
+    title: "原始 Lua",
+    category: "Lua 脚本",
+    ports: staticPorts([FLOW_IN, FLOW_OUT]),
+    create: () => ({ source: "" }),
+  });
+  registry.register({
+    type: "core.for.numeric",
+    title: "数值 for",
+    category: "基础流程",
+    luaName: "for i = a, b, c",
+    ports: staticPorts([
+      FLOW_IN,
+      { id: "start", name: "起点", type: "number", direction: "input", kind: "data" },
+      { id: "limit", name: "终点", type: "number", direction: "input", kind: "data" },
+      { id: "step", name: "步长", type: "number", direction: "input", kind: "data", optional: true },
+      { id: "body", name: "循环体", type: "flow", direction: "output", kind: "flow" },
+      { id: "index", name: "index", type: "number", direction: "output", kind: "data" },
+      { id: "exec_out", name: "完成", type: "flow", direction: "output", kind: "flow" },
+    ]),
+  });
+  for (const [type, title, iterator, keyName, keyType] of [
+    ["core.for.ipairs", "顺序遍历", "ipairs", "index", "number"],
+    ["core.for.pairs", "键值遍历", "pairs", "key", "any"],
+  ] as const) {
+    registry.register({
+      type,
+      title,
+      category: "基础流程",
+      luaName: `for k, v in ${iterator}(t)`,
+      ports: staticPorts([
+        FLOW_IN,
+        { id: "source", name: "表", type: "table", direction: "input", kind: "data" },
+        { id: "body", name: "循环体", type: "flow", direction: "output", kind: "flow" },
+        { id: "key", name: keyName, type: keyType, direction: "output", kind: "data" },
+        { id: "value", name: "value", type: "any", direction: "output", kind: "data" },
+        { id: "exec_out", name: "完成", type: "flow", direction: "output", kind: "flow" },
+      ]),
+    });
+  }
+  registry.register({
+    type: "core.break",
+    title: "break",
+    category: "基础流程",
+    luaName: "break",
+    ports: staticPorts([FLOW_IN]),
   });
   registry.register({
     type: "core.constant.number",

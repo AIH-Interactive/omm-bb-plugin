@@ -64,5 +64,14 @@ export const WORKFLOW_WORKSPACE_STYLE = `
 .omm-event-log { max-height: 120px; overflow-y: auto; font-family: var(--font-code, monospace); font-size: 0.9em; }
 .omm-bone-tree { max-height: 220px; overflow-y: auto; }
 .omm-bone { padding: 2px 4px; cursor: pointer; border-radius: 3px; }
+.omm-dialog-backdrop { position: absolute; inset: 0; z-index: 10; display: flex; align-items: center; justify-content: center; background: rgba(0, 0, 0, 0.45); }
+.omm-dialog { width: min(960px, 90%); max-height: 85%; overflow-y: auto; padding: 16px; background: var(--color-ui); border: 1px solid var(--color-border); border-radius: 8px; }
+.omm-compare { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.omm-compare .omm-code { max-height: 300px; overflow: auto; margin: 0; }
+.omm-pending { margin: 8px 0; }
+.omm-lua-preview { width: 360px; border-left: 1px solid var(--color-border); }
+.omm-lua-preview .omm-code { margin: 0; min-height: 200px; }
+.omm-workflow { position: relative; }
+.omm-workflow__toolbar button.active { box-shadow: inset 0 -2px var(--color-accent); }
 .omm-bone--bound { background: var(--color-selected); color: var(--color-accent); }
 `;

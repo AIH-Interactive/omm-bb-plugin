@@ -23,6 +23,11 @@ declare const Blockbench: {
   showQuickMessage(message: string, time?: number): void;
   showMessageBox(options: { title: string; message: string; icon?: string }): void;
   on(event: string, callback: (data: unknown) => void): void;
+  pickDirectory(options: { title?: string; resource_id?: string }): string | null | undefined;
+  import(
+    options: { extensions: string[]; type: string; readtype: string; resource_id?: string },
+    callback: (files: { path: string; content: string | ArrayBuffer }[]) => void,
+  ): void;
   removeListener(event: string, callback: (data: unknown) => void): void;
 };
 declare const Mode: new (id: string, options: object) => { select(): void; delete(): void };
@@ -144,6 +149,18 @@ export function createGlobalHost(): BlockbenchHost {
         Blockbench.showQuickMessage(message, 2000);
       }
     },
+    pickDirectory: (title) => Blockbench.pickDirectory({ title, resource_id: "omm_lua_export" }) ?? null,
+    pickLuaFile: () =>
+      new Promise((resolve) => {
+        Blockbench.import(
+          { extensions: ["lua"], type: "Lua", readtype: "text", resource_id: "omm_lua_import" },
+          (files) => {
+            const file = files[0];
+            resolve(file !== undefined && typeof file.content === "string" ? { path: file.path, content: file.content } : null);
+          },
+        );
+      }),
+    confirm: (message) => window.confirm(message),
     onProjectChanged: (callback) =>
       subscribe(["select_project", "finished_edit", "undo", "redo"], callback),
     playback: createPlayback(),

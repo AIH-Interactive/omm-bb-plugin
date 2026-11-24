@@ -65,5 +65,10 @@ export interface BlockbenchHost {
   notify(message: string, kind: "info" | "error"): void;
   /** Fires on project switch, undo/redo and finished edits (bone tree may change). */
   onProjectChanged(callback: () => void): () => void;
+  /** Native directory picker; `null` when cancelled or unavailable. */
+  pickDirectory(title: string): string | null;
+  /** Native Lua file picker returning UTF-8 text; `null` when cancelled. */
+  pickLuaFile(): Promise<{ path: string; content: string } | null>;
+  confirm(message: string): boolean;
   playback: AnimationPlayback;
 }

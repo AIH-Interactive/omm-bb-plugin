@@ -46,10 +46,16 @@ export type Command =
       readonly changes: Partial<ControlDefinition>;
     }
   | { readonly kind: "removeControl"; readonly controlId: string }
+  /** Replaces a whole graph (Lua import); undoable like any other command. */
+  | { readonly kind: "replaceGraph"; readonly graph: Graph }
+  /** Sets a top-level document field other than the schema fields. */
+  | { readonly kind: "setDocumentField"; readonly field: string; readonly value: unknown }
   /** Applied atomically: one undo step, nothing applied if any part fails. */
   | { readonly kind: "transaction"; readonly label: string; readonly commands: readonly Command[] };
 
 type GraphCommand = Extract<Command, { graphId: string }>;
+
+const PROTECTED_DOCUMENT_FIELDS = new Set(["schemaVersion", "targetProfile", "graphs", "controls"]);
 
 export type ApplyResult =
   | { readonly ok: true }
@@ -192,6 +198,21 @@ export class GraphStore {
         return this.addControl(document, command.control);
       case "updateControl":
         return this.updateControl(document, command.controlId, command.changes);
+      case "replaceGraph": {
+        const exists = document.graphs.some((graph) => graph.id === command.graph.id);
+        if (!exists) {
+          fail("graph.missing", `图 ${command.graph.id} 不存在。`);
+        }
+        return {
+          ...document,
+          graphs: document.graphs.map((graph) => (graph.id === command.graph.id ? command.graph : graph)),
+        };
+      }
+      case "setDocumentField":
+        if (PROTECTED_DOCUMENT_FIELDS.has(command.field)) {
+          fail("document.protectedField", `字段 ${command.field} 不能直接修改。`);
+        }
+        return { ...document, [command.field]: command.value };
       case "removeControl":
         return {
           ...document,

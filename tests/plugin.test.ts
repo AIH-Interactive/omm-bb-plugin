@@ -65,6 +65,9 @@ function createFakeHost(fs: SidecarFileSystem | null, modelPath: string | null) 
     fileSystem: () => fs,
     notify: (message, kind) => messages.push({ message, kind }),
     onProjectChanged: () => () => {},
+    pickDirectory: () => null,
+    pickLuaFile: async () => null,
+    confirm: () => false,
     playback: {
       onAnimationFrame: () => () => {},
       boneTree: () => null,

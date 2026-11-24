@@ -1,6 +1,8 @@
 import type { AnimationPlayback } from "../blockbench/host.ts";
 import type { ControlType, Position } from "../workflow/schema.ts";
 import { createControlPanel } from "./ControlPanel.ts";
+import { createImportExportDialog } from "./ImportExportDialog.ts";
+import type { LuaIoController } from "./lua-io.ts";
 import { createGraphCanvas } from "./GraphCanvas.ts";
 import { createModelPreviewPanel } from "./ModelPreviewPanel.ts";
 import { createNodeLibrary } from "./NodeLibrary.ts";
@@ -14,9 +16,14 @@ interface WorkspaceVm {
 }
 
 /** Vue 2 options component compiled by the host's runtime template compiler. */
-export function createWorkflowWorkspace(controller: WorkspaceController, playback: AnimationPlayback): object {
+export function createWorkflowWorkspace(
+  controller: WorkspaceController,
+  playback: AnimationPlayback,
+  io: LuaIoController,
+): object {
   return {
     components: {
+      "omm-import-export-dialog": createImportExportDialog(io),
       "omm-graph-canvas": createGraphCanvas(controller),
       "omm-node-library": createNodeLibrary(controller),
       "omm-node-properties": createScriptNodeEditor(controller),
@@ -24,7 +31,7 @@ export function createWorkflowWorkspace(controller: WorkspaceController, playbac
       "omm-model-preview": createModelPreviewPanel(controller, playback),
     },
     data() {
-      return { controller, view: controller.view };
+      return { controller, view: controller.view, io, ioState: io.state, showPreview: false };
     },
     computed: {
       errorCount(this: WorkspaceVm): number {
@@ -40,6 +47,12 @@ export function createWorkflowWorkspace(controller: WorkspaceController, playbac
       },
       insertControl(this: WorkspaceVm & { center(): Position }, type: ControlType) {
         this.controller.addControl(type, this.center());
+      },
+      togglePreview(this: WorkspaceVm & { showPreview: boolean }) {
+        this.showPreview = !this.showPreview;
+        if (this.showPreview) {
+          io.refreshPreview();
+        }
       },
       fitView(this: WorkspaceVm) {
         this.$refs.canvas?.fitView();
@@ -68,8 +81,9 @@ export function createWorkflowWorkspace(controller: WorkspaceController, playbac
 <div class="omm-workflow" @keydown="onKey">
   <div class="omm-workflow__toolbar">
     <button type="button" @click="controller.save()">保存</button>
-    <button type="button" disabled title="P3 提供">导入 Lua</button>
-    <button type="button" disabled title="P3 提供">导出 Lua</button>
+    <button type="button" @click="io.importFromDisk()">导入 Lua</button>
+    <button type="button" @click="io.exportToDisk()">导出 Lua</button>
+    <button type="button" :class="{ active: showPreview }" @click="togglePreview">Lua 预览</button>
     <span class="omm-separator"></span>
     <button type="button" :disabled="!view.canUndo" @click="controller.undo()">撤销</button>
     <button type="button" :disabled="!view.canRedo" @click="controller.redo()">重做</button>
@@ -83,6 +97,10 @@ export function createWorkflowWorkspace(controller: WorkspaceController, playbac
       <omm-node-library @insert-node="insertNode" @insert-control="insertControl"></omm-node-library>
     </div>
     <omm-graph-canvas ref="canvas"></omm-graph-canvas>
+    <div v-if="showPreview" class="omm-workflow__side omm-lua-preview">
+      <div class="omm-actions"><span class="omm-subtitle">生成的 Lua</span><button type="button" @click="io.refreshPreview()">刷新</button></div>
+      <pre class="omm-code">{{ ioState.preview === null ? '（存在阻止导出的诊断）' : ioState.preview }}</pre>
+    </div>
     <div class="omm-workflow__side omm-workflow__side--right">
       <div class="omm-tabs">
         <button type="button" :class="{ active: view.rightTab === 'properties' }" @click="view.rightTab = 'properties'">节点属性</button>
@@ -94,6 +112,7 @@ export function createWorkflowWorkspace(controller: WorkspaceController, playbac
       <omm-model-preview v-show="view.rightTab === 'preview'"></omm-model-preview>
     </div>
   </div>
+  <omm-import-export-dialog></omm-import-export-dialog>
   <div class="omm-workflow__footer">
     <span>Generic Model · {{ controller.store.document.targetProfile }}</span>
     <span class="omm-muted">{{ view.graph.nodes.length }} 个节点 · {{ view.graph.edges.length }} 条连线</span>

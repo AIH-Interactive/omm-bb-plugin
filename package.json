@@ -9,12 +9,16 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "node --test tests/workflow-file.test.ts tests/plugin.test.ts tests/workflow.test.ts",
+    "test": "node --test tests/workflow-file.test.ts tests/plugin.test.ts tests/workflow.test.ts tests/lua.test.ts tests/export.test.ts",
     "build": "node scripts/build.mjs"
   },
   "devDependencies": {
+    "@types/luaparse": "0.2.13",
     "@types/node": "22.20.5",
     "esbuild": "0.28.2",
     "typescript": "7.0.2"
+  },
+  "dependencies": {
+    "luaparse": "0.3.1"
   }
 }

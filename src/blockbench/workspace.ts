@@ -1,5 +1,6 @@
 import { createDefaultRegistry } from "../nodes/default-registry.ts";
 import { createWorkflowWorkspace } from "../ui/WorkflowWorkspace.ts";
+import { LuaIoController } from "../ui/lua-io.ts";
 import { WorkspaceController } from "../ui/workspace-controller.ts";
 import type { WorkflowSession } from "../workflow/session.ts";
 import type { BlockbenchHost, HostMode } from "./host.ts";
@@ -39,7 +40,7 @@ export function registerWorkflowMode(host: BlockbenchHost, session: WorkflowSess
   const mode = host.createMode(WORKFLOW_MODE_ID, {
     name: "Lua 工作流",
     icon: "account_tree",
-    component: createWorkflowWorkspace(controller, host.playback),
+    component: createWorkflowWorkspace(controller, host.playback, new LuaIoController(host, controller)),
     condition: () => host.hasProject(),
     onSelect: () => {
       selected = true;
