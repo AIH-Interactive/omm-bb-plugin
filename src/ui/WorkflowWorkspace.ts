@@ -1,80 +1,103 @@
-import type { SaveResult, WorkflowSession } from "../workflow/session.ts";
+import type { AnimationPlayback } from "../blockbench/host.ts";
+import type { ControlType, Position } from "../workflow/schema.ts";
+import { createControlPanel } from "./ControlPanel.ts";
+import { createGraphCanvas } from "./GraphCanvas.ts";
+import { createModelPreviewPanel } from "./ModelPreviewPanel.ts";
+import { createNodeLibrary } from "./NodeLibrary.ts";
+import { createScriptNodeEditor } from "./ScriptNodeEditor.ts";
+import type { WorkspaceController } from "./workspace-controller.ts";
 
-export interface WorkflowWorkspaceProps {
-  session: WorkflowSession;
-  save(): SaveResult;
+interface WorkspaceVm {
+  controller: WorkspaceController;
+  view: WorkspaceController["view"];
+  $refs: { canvas?: { viewportCenter(): Position; fitView(): void } };
 }
 
-const STYLE = `
-.omm-workflow { display: flex; flex-direction: column; height: 100%; color: var(--color-text); background: var(--color-back); }
-.omm-workflow__toolbar { display: flex; align-items: center; gap: 8px; padding: 4px 8px; background: var(--color-ui); border-bottom: 1px solid var(--color-border); }
-.omm-workflow__toolbar .spacer { flex: 1; }
-.omm-workflow__body { display: flex; flex: 1; min-height: 0; }
-.omm-workflow__side { width: 240px; padding: 8px; background: var(--color-ui); overflow-y: auto; }
-.omm-workflow__side input { width: 100%; }
-.omm-workflow__side h3 { margin: 4px 0 8px; font-size: 1em; }
-.omm-workflow__canvas { flex: 1; display: flex; align-items: center; justify-content: center; flex-direction: column; gap: 8px; }
-.omm-workflow__empty-title { font-size: 1.2em; }
-.omm-workflow__muted { color: var(--color-subtle_text); }
-.omm-workflow__error { color: var(--color-close); padding: 4px 8px; }
-.omm-workflow__footer { display: flex; justify-content: space-between; padding: 2px 8px; background: var(--color-ui); border-top: 1px solid var(--color-border); }
-`;
-
-const TEMPLATE = `
-<div class="omm-workflow">
-  <div class="omm-workflow__toolbar">
-    <button type="button" @click="save">保存</button>
-    <button type="button" disabled title="后续阶段提供">导入 Lua</button>
-    <button type="button" disabled title="后续阶段提供">导出 Lua</button>
-    <span class="spacer"></span>
-    <span>诊断　{{ errorCount }} 条错误</span>
-  </div>
-  <div v-if="state.loadError" class="omm-workflow__error">{{ state.loadError }}</div>
-  <div class="omm-workflow__body">
-    <div class="omm-workflow__side">
-      <h3>节点库</h3>
-      <input type="text" placeholder="搜索节点 / Lua 名称" disabled>
-    </div>
-    <div class="omm-workflow__canvas">
-      <template v-if="nodeCount === 0">
-        <div class="omm-workflow__empty-title">此工作流还没有节点</div>
-        <div class="omm-workflow__muted">从节点库拖入节点，或打开搜索。</div>
-      </template>
-      <div v-else>{{ nodeCount }} 个节点</div>
-    </div>
-    <div class="omm-workflow__side">
-      <h3>属性</h3>
-      <div class="omm-workflow__muted">选择节点查看属性</div>
-    </div>
-  </div>
-  <div class="omm-workflow__footer">
-    <span>{{ state.document.targetProfile }}</span>
-    <span class="omm-workflow__muted">{{ state.modelPath || "模型尚未保存" }}</span>
-  </div>
-</div>
-`;
-
-/** Vue 2 options component for the host's runtime template compiler. */
-export function createWorkflowWorkspace(props: WorkflowWorkspaceProps): object {
+/** Vue 2 options component compiled by the host's runtime template compiler. */
+export function createWorkflowWorkspace(controller: WorkspaceController, playback: AnimationPlayback): object {
   return {
+    components: {
+      "omm-graph-canvas": createGraphCanvas(controller),
+      "omm-node-library": createNodeLibrary(controller),
+      "omm-node-properties": createScriptNodeEditor(controller),
+      "omm-control-panel": createControlPanel(controller),
+      "omm-model-preview": createModelPreviewPanel(controller, playback),
+    },
     data() {
-      return { state: props.session.state };
+      return { controller, view: controller.view };
     },
     computed: {
-      nodeCount(this: { state: WorkflowSession["state"] }): number {
-        return this.state.document.graphs.reduce((sum, graph) => sum + graph.nodes.length, 0);
-      },
-      errorCount(this: { state: WorkflowSession["state"] }): number {
-        return this.state.loadError === null ? 0 : 1;
+      errorCount(this: WorkspaceVm): number {
+        return this.view.diagnostics.filter((diagnostic) => diagnostic.severity === "error").length;
       },
     },
     methods: {
-      save(): void {
-        props.save();
+      center(this: WorkspaceVm): Position {
+        return this.$refs.canvas?.viewportCenter() ?? { x: 0, y: 0 };
+      },
+      insertNode(this: WorkspaceVm & { center(): Position }, type: string) {
+        this.controller.addNode(type, this.center());
+      },
+      insertControl(this: WorkspaceVm & { center(): Position }, type: ControlType) {
+        this.controller.addControl(type, this.center());
+      },
+      fitView(this: WorkspaceVm) {
+        this.$refs.canvas?.fitView();
+      },
+      onKey(this: WorkspaceVm, event: KeyboardEvent) {
+        // Workflow shortcuts only while focus is inside the workspace, never in text fields.
+        const target = event.target as HTMLElement;
+        if (target.matches("input, textarea, select") || !(event.ctrlKey || event.metaKey)) {
+          return;
+        }
+        const key = event.key.toLowerCase();
+        if (key === "z" && !event.shiftKey) {
+          this.controller.undo();
+        } else if (key === "y" || (key === "z" && event.shiftKey)) {
+          this.controller.redo();
+        } else if (key === "s") {
+          this.controller.save();
+        } else {
+          return;
+        }
+        event.preventDefault();
+        event.stopPropagation();
       },
     },
-    template: TEMPLATE,
+    template: `
+<div class="omm-workflow" @keydown="onKey">
+  <div class="omm-workflow__toolbar">
+    <button type="button" @click="controller.save()">保存</button>
+    <button type="button" disabled title="P3 提供">导入 Lua</button>
+    <button type="button" disabled title="P3 提供">导出 Lua</button>
+    <span class="omm-separator"></span>
+    <button type="button" :disabled="!view.canUndo" @click="controller.undo()">撤销</button>
+    <button type="button" :disabled="!view.canRedo" @click="controller.redo()">重做</button>
+    <button type="button" @click="fitView">适配视图</button>
+    <span class="spacer"></span>
+    <span :class="{ 'omm-diagnostic': errorCount > 0 }">诊断　{{ errorCount }} 条错误</span>
+  </div>
+  <div v-if="view.lastError" class="omm-workflow__error" @click="view.lastError = null">{{ view.lastError }}</div>
+  <div class="omm-workflow__body">
+    <div class="omm-workflow__side omm-workflow__side--left">
+      <omm-node-library @insert-node="insertNode" @insert-control="insertControl"></omm-node-library>
+    </div>
+    <omm-graph-canvas ref="canvas"></omm-graph-canvas>
+    <div class="omm-workflow__side omm-workflow__side--right">
+      <div class="omm-tabs">
+        <button type="button" :class="{ active: view.rightTab === 'properties' }" @click="view.rightTab = 'properties'">节点属性</button>
+        <button type="button" :class="{ active: view.rightTab === 'controls' }" @click="view.rightTab = 'controls'">控件</button>
+        <button type="button" :class="{ active: view.rightTab === 'preview' }" @click="view.rightTab = 'preview'">模型预览</button>
+      </div>
+      <omm-node-properties v-show="view.rightTab === 'properties'"></omm-node-properties>
+      <omm-control-panel v-show="view.rightTab === 'controls'"></omm-control-panel>
+      <omm-model-preview v-show="view.rightTab === 'preview'"></omm-model-preview>
+    </div>
+  </div>
+  <div class="omm-workflow__footer">
+    <span>Generic Model · {{ controller.store.document.targetProfile }}</span>
+    <span class="omm-muted">{{ view.graph.nodes.length }} 个节点 · {{ view.graph.edges.length }} 条连线</span>
+  </div>
+</div>`,
   };
 }
-
-export const WORKFLOW_WORKSPACE_STYLE = STYLE;

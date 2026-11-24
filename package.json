@@ -9,7 +9,7 @@
   },
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "node --test tests/workflow-file.test.ts tests/plugin.test.ts",
+    "test": "node --test tests/workflow-file.test.ts tests/plugin.test.ts tests/workflow.test.ts",
     "build": "node scripts/build.mjs"
   },
   "devDependencies": {

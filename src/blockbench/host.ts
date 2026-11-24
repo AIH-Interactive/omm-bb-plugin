@@ -1,4 +1,5 @@
 import type { SidecarFileSystem } from "../persistence/sidecar.ts";
+import type { AnimationFrameSource } from "./animation-preview.ts";
 
 /** Disposable registration handle. */
 export interface Disposable {
@@ -34,6 +35,23 @@ export interface HostMenu {
  * Narrow adapter over the Blockbench globals the plugin uses.
  * Keeping it explicit lets business behavior be tested without the host.
  */
+export interface AnimationInfo {
+  readonly uuid: string;
+  readonly name: string;
+}
+
+/** Native timeline/animation controls used by the preview panel. */
+export interface AnimationPlayback extends AnimationFrameSource {
+  listAnimations(): readonly AnimationInfo[];
+  selectAnimation(uuid: string): void;
+  isPlaying(): boolean;
+  play(): void;
+  pause(): void;
+  seek(seconds: number): void;
+  /** Switches to the native animate mode whose viewport shows the overlay. */
+  showNativeAnimationViewport(): void;
+}
+
 export interface BlockbenchHost {
   createMode(id: string, options: HostModeOptions): HostMode;
   createAction(id: string, options: HostActionOptions): Disposable;
@@ -45,4 +63,7 @@ export interface BlockbenchHost {
   hasProject(): boolean;
   fileSystem(): SidecarFileSystem | null;
   notify(message: string, kind: "info" | "error"): void;
+  /** Fires on project switch, undo/redo and finished edits (bone tree may change). */
+  onProjectChanged(callback: () => void): () => void;
+  playback: AnimationPlayback;
 }

@@ -64,15 +64,32 @@ function createFakeHost(fs: SidecarFileSystem | null, modelPath: string | null) 
     currentModelPath: () => modelPath,
     fileSystem: () => fs,
     notify: (message, kind) => messages.push({ message, kind }),
+    onProjectChanged: () => () => {},
+    playback: {
+      onAnimationFrame: () => () => {},
+      boneTree: () => null,
+      timelineTime: () => 0,
+      selectedAnimationId: () => null,
+      boneWorldPosition: () => null,
+      setTrailOverlay: () => {},
+      listAnimations: () => [],
+      selectAnimation: () => {},
+      isPlaying: () => false,
+      play: () => {},
+      pause: () => {},
+      seek: () => {},
+      showNativeAnimationViewport: () => {},
+    },
   };
 
   return { host, log, messages, modes, actions };
 }
 
-type WorkspaceVm = { methods: { save(): void } };
+type WorkspaceComponent = { data(): { controller: { save(): void } } };
 
+/** Same call path as the toolbar “保存” button. */
 function clickSave(modes: Map<string, HostModeOptions>): void {
-  (modes.get(WORKFLOW_MODE_ID)!.component as WorkspaceVm).methods.save();
+  (modes.get(WORKFLOW_MODE_ID)!.component as WorkspaceComponent).data().controller.save();
 }
 
 test("OMM menu entry opens the workflow mode and saving writes the sidecar", () => {
